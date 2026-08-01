@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CFA Level III Mock Exams — Offline Practice</title>
+<title>CFA Level III Offline Practice</title>
 <style>
   :root{
     --bg:#f5f6f8; --panel:#ffffff; --border:#dfe3e8; --text:#1f2937; --muted:#6b7280;
@@ -25,25 +25,25 @@
   button.btn.danger{color:var(--red);border-color:var(--red);}
   main.content{flex:1;min-height:0;width:100%;padding:6px 14px;display:flex;flex-direction:column;}
   body.is-fullscreen header.topbar{display:none;}
-  body.is-fullscreen main.content{padding:4px;}
-  body.is-fullscreen .cfaShell{border-radius:0;border:none;}
+  body.is-fullscreen main.content{padding:0;}
+  body.is-fullscreen .cfaShell{border-radius:0;border:none;box-shadow:none;}
   .examPanel{display:none;min-height:0;}
   .examPanel.active{display:flex;flex-direction:column;flex:1;min-height:0;}
 
   /* ---- CFA-style exam shell ---- */
   .cfaShell{flex:1;min-height:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.05);}
-  .cfaTopRow{display:flex;align-items:center;gap:0;background:#eef0f1;border-bottom:1px solid #d7dadd;padding:10px 16px;flex-wrap:wrap;}
-  .cfaQInfo{padding-right:16px;border-right:1px solid #d7dadd;margin-right:16px;min-width:100px;}
-  .cfaQNum{font-weight:700;font-size:14px;white-space:nowrap;}
-  .cfaSection{font-size:12.5px;color:var(--muted);margin-top:2px;}
-  .cfaTimerWrap{display:flex;align-items:center;gap:8px;padding-right:16px;border-right:1px solid #d7dadd;margin-right:16px;}
+  .cfaTopRow{display:flex;align-items:center;gap:0;background:var(--cfa-dark);color:#fff;border-bottom:1px solid var(--cfa-dark2);padding:10px 16px;flex-wrap:wrap;}
+  .cfaQInfo{padding-right:16px;border-right:1px solid rgba(255,255,255,.18);margin-right:16px;min-width:100px;}
+  .cfaQNum{font-weight:700;font-size:14px;white-space:nowrap;color:#fff;}
+  .cfaSection{font-size:12.5px;color:rgba(255,255,255,.75);margin-top:2px;}
+  .cfaTimerWrap{display:flex;align-items:center;gap:8px;padding-right:16px;border-right:1px solid rgba(255,255,255,.18);margin-right:16px;}
   .cfaClockIcon{font-size:18px;}
-  .cfaTimerLabel{font-size:11.5px;color:var(--muted);white-space:nowrap;}
-  .cfaTimerVal{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;}
+  .cfaTimerLabel{font-size:11.5px;color:rgba(255,255,255,.75);white-space:nowrap;}
+  .cfaTimerVal{font-variant-numeric:tabular-nums;font-weight:600;font-size:13.5px;color:#fff;}
   .cfaProgressWrap{flex:1;min-width:150px;display:flex;flex-direction:column;gap:4px;margin-right:16px;}
-  .cfaProgressBar{height:8px;background:#dfe3e6;border-radius:4px;overflow:hidden;}
-  .cfaProgressFill{height:100%;background:var(--cfa-green);width:0%;transition:width .2s;}
-  .cfaProgressLabel{font-size:11.5px;color:var(--muted);}
+  .cfaProgressBar{height:8px;background:rgba(255,255,255,.25);border-radius:4px;overflow:hidden;}
+  .cfaProgressFill{height:100%;background:#fff;width:0%;transition:width .2s;}
+  .cfaProgressLabel{font-size:11.5px;color:rgba(255,255,255,.75);}
   .cfaFinishBtn{background:var(--cfa-yellow);border:1px solid var(--cfa-yellow-border);color:#5c4d1a;font-weight:700;padding:9px 18px;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap;}
   .cfaFinishBtn:disabled{opacity:.6;cursor:default;}
   .cfaGreenBar{flex:none;background:var(--cfa-green);color:#fff;padding:6px 16px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:12.5px;font-weight:600;}
@@ -153,7 +153,7 @@
 <body>
 
 <header class="topbar">
-  <h1>CFA L3 Mock Exams — Offline</h1>
+  <h1>CFA L3</h1>
   <div class="examTabs" id="examTabs"></div>
   <div class="spacer"></div>
   <span class="scoreBadge" id="scoreBadge">Chưa nộp bài</span>
@@ -341,11 +341,11 @@ const EXAM_DATA = [{"id": "M1S1", "title": "Module 1 - Session 1", "totalPoints"
       '<div class="cfaShell">' +
         '<div class="cfaTopRow">' +
           '<div class="cfaQInfo"><div class="cfaQNum">Question: <span data-role="qnum">1</span></div><div class="cfaSection">Section: 1</div></div>' +
-          '<div class="cfaTimerWrap"><span class="cfaClockIcon">🕐</span><div><div class="cfaTimerLabel">Thời gian làm bài</div><div class="cfaTimerVal" data-role="timerVal">00:00:00</div></div></div>' +
+          '<div class="cfaTimerWrap"><span class="cfaClockIcon">🕐</span><div><div class="cfaTimerLabel">Section Time Elapsed:</div><div class="cfaTimerVal" data-role="timerVal">00:00:00</div></div></div>' +
           '<div class="cfaProgressWrap"><div class="cfaProgressBar"><div class="cfaProgressFill" data-role="progressFill"></div></div><div class="cfaProgressLabel" data-role="progressLabel">Progress 0%</div></div>' +
           '<button class="cfaFinishBtn" data-role="finishBtn">Finish Test</button>' +
         '</div>' +
-        '<div class="cfaGreenBar"><span data-role="testLabel">Test: '+exam.title+'</span><span>Candidate: Hieu</span></div>' +
+        '<div class="cfaGreenBar"><span data-role="testLabel">Test: '+exam.title+'</span><span>Candidate: Demo</span></div>' +
         '<div class="cfaBody">' +
           '<div class="casePanel" data-role="casePanel">' +
             '<div class="casePanelHeader"><span>Case Scenario</span><div class="casePanelIcons"><button class="iconBtn" data-role="closeCaseBtn" title="Ẩn Case Scenario">✕</button></div></div>' +
