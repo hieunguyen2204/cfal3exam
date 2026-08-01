@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CFA Level III Offline Practice</title>
+<title>CFA Level III Mock Exams — Offline Practice</title>
 <style>
   :root{
     --bg:#f5f6f8; --panel:#ffffff; --border:#dfe3e8; --text:#1f2937; --muted:#6b7280;
@@ -867,15 +867,72 @@ const EXAM_DATA = [{"id": "M1S1", "title": "Module 1 - Session 1", "totalPoints"
     return count;
   }
 
+  // A selection can visually cross a table-cell (or paragraph/list-item) boundary
+  // just by dragging the mouse over the gap between columns. Wrapping that whole
+  // span in a single <mark> would rip content out of its <td>/<p> and glue
+  // unrelated cells together (e.g. "40%" and "6.5%" merging into one blob).
+  // So we split the range into one sub-range per block ancestor first, and wrap
+  // each piece with its own <mark> (sharing the same uid) instead.
+  const BLOCK_TAGS = ['TD','TH','LI','P','DIV','TR','TABLE','BLOCKQUOTE','H1','H2','H3','H4','H5','H6'];
+  function getBlockAncestor(node){
+    let el = node.nodeType === 3 ? node.parentNode : node;
+    while(el && el.nodeType === 1 && BLOCK_TAGS.indexOf(el.tagName) === -1){
+      el = el.parentNode;
+    }
+    return el || null;
+  }
+
+  function splitRangeByBlock(range){
+    if(range.collapsed) return [range];
+    const allNodes = getTextNodesIn(range.commonAncestorContainer);
+    const nodes = allNodes.filter(n => range.intersectsNode ? range.intersectsNode(n) : true);
+    if(nodes.length <= 1) return [range];
+
+    const groups = [];
+    let curGroup = [nodes[0]];
+    let curBlock = getBlockAncestor(nodes[0]);
+    for(let i=1;i<nodes.length;i++){
+      const b = getBlockAncestor(nodes[i]);
+      if(b === curBlock){
+        curGroup.push(nodes[i]);
+      } else {
+        groups.push(curGroup);
+        curGroup = [nodes[i]];
+        curBlock = b;
+      }
+    }
+    groups.push(curGroup);
+    if(groups.length <= 1) return [range];
+
+    return groups.map((group, gi)=>{
+      const r = document.createRange();
+      const firstNode = group[0], lastNode = group[group.length-1];
+      r.setStart(firstNode, firstNode === range.startContainer ? range.startOffset : 0);
+      r.setEnd(lastNode, lastNode === range.endContainer ? range.endOffset : lastNode.nodeValue.length);
+      return r;
+    });
+  }
+
   function wrapRangeWithMark(range, uid){
-    const mark = document.createElement('mark');
-    mark.className = 'hl';
-    mark.dataset.hlUid = uid;
-    mark.title = 'Bấm để bỏ highlight';
-    const frag = range.extractContents();
-    mark.appendChild(frag);
-    range.insertNode(mark);
-    return mark;
+    let subRanges;
+    try{
+      subRanges = splitRangeByBlock(range);
+    }catch(e){
+      subRanges = [range];
+    }
+    let firstMark = null;
+    subRanges.forEach(r=>{
+      if(r.collapsed) return;
+      const mark = document.createElement('mark');
+      mark.className = 'hl';
+      mark.dataset.hlUid = uid;
+      mark.title = 'Bấm để bỏ highlight';
+      const frag = r.extractContents();
+      mark.appendChild(frag);
+      r.insertNode(mark);
+      if(!firstMark) firstMark = mark;
+    });
+    return firstMark;
   }
 
   function reapplyHighlightsFor(examId, container){
@@ -945,10 +1002,15 @@ const EXAM_DATA = [{"id": "M1S1", "title": "Module 1 - Session 1", "totalPoints"
     const sel = window.getSelection();
     if(sel && !sel.isCollapsed) return; // user is selecting text, not clicking to remove
     const uid = mark.dataset.hlUid;
-    const parent = mark.parentNode;
-    while(mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-    parent.removeChild(mark);
-    parent.normalize();
+    // a single highlight can be split across several <mark> elements (e.g. one
+    // per table cell it touches), all sharing this uid — unwrap all of them.
+    document.querySelectorAll('mark.hl[data-hl-uid="'+uid+'"]').forEach(m=>{
+      const parent = m.parentNode;
+      if(!parent) return;
+      while(m.firstChild) parent.insertBefore(m.firstChild, m);
+      parent.removeChild(m);
+      parent.normalize();
+    });
     states[currentExamId].highlights = states[currentExamId].highlights.filter(h => h.uid !== uid);
     saveState(currentExamId, states[currentExamId]);
   });
