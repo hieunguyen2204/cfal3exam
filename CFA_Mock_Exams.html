@@ -148,15 +148,51 @@
     .qPane{height:auto;}
     .qCard,.pillNav{height:auto;max-height:none;}
   }
+
+  /* ---- PDF export (print) report — styled to match the app's own CFA-green/dark theme ---- */
+  #printReport{display:none;}
+  @media print{
+    html,body{height:auto !important;overflow:visible !important;display:block !important;background:#fff !important;}
+    @page{ size:A4 portrait; margin:12mm 12mm; }
+    header.topbar, main.content, #hlToolbar, #overviewModal{ display:none !important; }
+    #printReport{ display:block !important; font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:var(--text); -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    #printReport .prHead{margin-bottom:16px;background:var(--cfa-dark);color:#fff;border-radius:8px;padding:14px 18px;}
+    #printReport .prHead h1{font-size:18px;margin:0 0 6px;color:#fff;}
+    #printReport .prMeta{font-size:12px;color:rgba(255,255,255,.75);margin:2px 0;}
+    #printReport .prScoreBig{font-size:14px;font-weight:700;margin-top:8px;display:inline-block;background:var(--cfa-green);color:#fff;padding:5px 12px;border-radius:20px;}
+    #printReport .prVignette{margin-top:20px;page-break-before:auto;}
+    #printReport .prVignetteTitle{font-size:13px;font-weight:700;text-transform:uppercase;background:var(--cfa-green);color:#fff;padding:7px 12px;border-radius:6px 6px 0 0;letter-spacing:.02em;}
+    #printReport .prNarrative{border:1px solid var(--border);border-top:none;border-radius:0 0 6px 6px;padding:10px 14px;margin-bottom:10px;background:#fafbfc;}
+    #printReport .prNarrative .narrative p{font-size:12px;line-height:1.5;}
+    #printReport .prNarrative table.exhibit-table{font-size:10.5px;}
+    #printReport .prQuestion{margin:12px 0;page-break-inside:avoid;border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:4px;padding:10px 12px;}
+    #printReport .prQHead{font-weight:700;font-size:12.5px;margin-bottom:4px;color:var(--accent);}
+    #printReport .prPrompt{font-size:12.5px;line-height:1.5;margin-bottom:6px;}
+    #printReport .prPrompt p{margin:0 0 6px;}
+    #printReport .prLabel{font-weight:700;font-size:11px;text-transform:uppercase;color:var(--amber);margin:6px 0 2px;}
+    #printReport .prAnswerYours{font-size:12.5px;padding:5px 9px;border-radius:3px;background:var(--accent-light);border:1px solid #dbe6ff;}
+    #printReport .prChoices{margin:4px 0 2px;}
+    #printReport .prChoiceLine{font-size:12.5px;line-height:1.6;padding:2px 0;}
+    #printReport .prTag{font-size:10px;font-weight:700;padding:1px 7px;border-radius:8px;margin-left:6px;}
+    #printReport .prTagCorrect{background:#dcfce7;color:var(--green);}
+    #printReport .prTagYours{background:var(--accent-light);color:var(--accent);}
+    #printReport .prCorrect{color:var(--green);font-weight:700;}
+    #printReport .prWrong{color:var(--red);font-weight:700;}
+    #printReport .prFeedback{font-size:12px;line-height:1.5;color:#374151;background:#fffdf5;border:1px solid #f3ecc9;border-radius:4px;padding:8px 10px;}
+    #printReport .prFeedback p{margin:0 0 6px;}
+    #printReport table.exhibit-table{font-size:11px;}
+    #printReport .prScoreTag{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:8px;background:var(--accent-light);color:var(--accent);display:inline-block;}
+  }
 </style>
 </head>
 <body>
 
 <header class="topbar">
-  <h1>CFA L3 </h1>
+  <h1>CFA L3</h1>
   <div class="examTabs" id="examTabs"></div>
   <div class="spacer"></div>
   <span class="scoreBadge" id="scoreBadge">Chưa nộp bài</span>
+  <button class="btn" id="exportPdfBtn" title="Xuất bài làm ra PDF">🖨 Xuất PDF</button>
   <button class="btn" id="fullscreenBtn" title="Toàn màn hình">⛶ Toàn màn hình</button>
   <button class="btn danger" id="resetBtn">Làm lại từ đầu</button>
 </header>
@@ -164,6 +200,8 @@
 <main class="content" id="content"></main>
 
 <div id="hlToolbar"><button id="hlBtn">🖍 Highlight</button></div>
+
+<div id="printReport"></div>
 
 <div id="overviewModal">
   <div class="overviewCard">
@@ -184,7 +222,8 @@ const EXAM_DATA = [{"id": "M1S1", "title": "Module 1 - Session 1", "totalPoints"
   let timerInterval = null;
   const expandState = {}; // examId -> { vi: boolean(expanded) }
 
-  function stateKey(examId){ return 'cfaExamState_' + examId; }
+  var STORAGE_PREFIX = ""; // lets variant builds (e.g. a subset of topics) keep separate saved progress
+  function stateKey(examId){ return 'cfaExamState_' + STORAGE_PREFIX + examId; }
 
   function loadState(examId){
     try{
@@ -811,6 +850,78 @@ const EXAM_DATA = [{"id": "M1S1", "title": "Module 1 - Session 1", "totalPoints"
   document.addEventListener('fullscreenchange', checkImmersive);
   window.addEventListener('resize', checkImmersive);
   checkImmersive();
+
+  // ---------------- export full results to PDF (via browser print) ----------------
+  function buildPrintReport(examId){
+    const exam = EXAM_DATA.find(e=>e.id===examId);
+    const st = states[examId];
+    const {earned, total} = computeExamScore(examId);
+    const pct = total ? Math.round(earned/total*100) : 0;
+    const dateStr = new Date().toLocaleString('vi-VN');
+
+    let html = '';
+    html += '<div class="prHead">';
+    html += '<h1>'+exam.title+'</h1>';
+    html += '<div class="prMeta">Thí sinh: Hieu &nbsp;•&nbsp; Xuất lúc: '+dateStr+'</div>';
+    html += '<div class="prScoreBig">Tổng điểm tự chấm: '+round1(earned)+' / '+total+' ('+pct+'%)</div>';
+    html += '</div>';
+
+    exam.vignettes.forEach((v, vi)=>{
+      html += '<div class="prVignette">';
+      html += '<div class="prVignetteTitle">Vignette '+(vi+1)+' — '+v.topic+' ('+v.points+' điểm)</div>';
+      html += '<div class="prNarrative"><div class="narrative">'+v.narrative+'</div></div>';
+      v.questions.forEach((q, qi)=>{
+        const ans = getAnswer(examId, q.num);
+        const label = v.questions.length > 1 ? (vi+1)+'.'+(qi+1) : String(vi+1);
+        html += '<div class="prQuestion">';
+        html += '<div class="prQHead">Câu '+label+' — '+(q.type==='mc' ? 'Multiple Choice' : 'Essay')+' ('+q.points+' point'+(q.points>1?'s':'')+')</div>';
+        html += '<div class="prPrompt">'+q.prompt+'</div>';
+
+        if(q.type === 'mc'){
+          const isCorrect = ans.selected === q.correctIndex;
+          html += '<div class="prChoices">';
+          q.choices.forEach((c, idx)=>{
+            let tags = '';
+            if(idx === q.correctIndex) tags += ' <span class="prTag prTagCorrect">Đáp án đúng</span>';
+            if(idx === ans.selected) tags += ' <span class="prTag prTagYours">Bạn đã chọn</span>';
+            html += '<div class="prChoiceLine">'+String.fromCharCode(65+idx)+'. '+c+tags+'</div>';
+          });
+          html += '</div>';
+          html += '<div style="margin-top:6px;" class="'+(isCorrect ? 'prCorrect' : 'prWrong')+'">'+
+            (isCorrect ? '✓ Đúng (+'+q.points+' điểm)'
+              : (ans.selected === undefined ? '✗ Chưa trả lời (0 / '+q.points+' điểm)' : '✗ Sai (0 / '+q.points+' điểm)'))+'</div>';
+          if(q.feedback && q.feedback.length){
+            html += '<div class="prLabel">Giải thích đáp án</div>';
+            html += '<div class="prFeedback">'+q.feedback.map(p=>'<p>'+p+'</p>').join('')+'</div>';
+          }
+        } else {
+          const score = (ans.essayScore !== undefined) ? ans.essayScore : 0;
+          const hasText = ans.essayText && ans.essayText.replace(/<[^>]*>/g,'').trim().length > 0;
+          html += '<div class="prLabel">Câu trả lời của bạn</div>';
+          html += '<div class="prAnswerYours">'+(hasText ? ans.essayText : '<em>Chưa trả lời</em>')+'</div>';
+          html += '<div style="margin-top:6px;" class="prScoreTag">Điểm tự chấm: '+score+' / '+q.points+'</div>';
+          if(q.feedback && q.feedback.length){
+            html += '<div class="prLabel">Bài giải mẫu / Gợi ý chấm điểm</div>';
+            html += '<div class="prFeedback">'+q.feedback.map(p=>'<p>'+p+'</p>').join('')+'</div>';
+          }
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    document.getElementById('printReport').innerHTML = html;
+  }
+
+  document.getElementById('exportPdfBtn').addEventListener('click', ()=>{
+    const st = states[currentExamId];
+    if(!st.submitted){
+      alert('Bạn cần bấm "Finish Test" để nộp bài và chấm điểm trước khi xuất PDF — vậy mới có đủ đáp án đúng/sai và điểm để xuất.');
+      return;
+    }
+    buildPrintReport(currentExamId);
+    setTimeout(()=> window.print(), 60);
+  });
 
   // ---------------- text highlighting ----------------
   function getTextNodesIn(node){
